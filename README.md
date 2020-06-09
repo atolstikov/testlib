@@ -2,18 +2,17 @@
 
 ## Intro
 
-This project contains C++ implementation of the testlib. It is already being used on many programming contests in Russia (Russian National Olympiad in Informatics, different stages of ACM-ICPC). Join!
+C++ version of testlib is MikeMirzayanov's one (
+[https://github.com/MikeMirzayanov/testlib](https://github.com/MikeMirzayanov/testlib)
+).
 
-The library C++ code is tested for compatibility with Borland C++ (5.6), Microsoft Visual C++ (2003+), g++ (MinGW 4.0.2). Also we don't hear any issues about incorrect work with other compilers.
+The project also contains Python implementation of the testlib. This
+version is used on some competitions on Yandex.Contest (
+[https://contest.yandex.com](https://contest.yandex.com) ).
 
-This code used many times on Open Team Programming Collegiate Cup contests (http://opencup.ru/) running on Linux platform and compiled by g++ compiler.
-
-The C++ version of testlib is MikeMirzayanov's one
-(https://github.com/MikeMirzayanov/testlib).
-
-The project also contains Python implementation of the testlib.
-This version is used on some competitions on Yandex.Contest
-(https://contest.yandex.com).
+Pascal version of testlib is not include, but can be found at
+[http://acm.math.spbu.ru/soft/testlib](http://acm.math.spbu.ru/soft/testlib)
+or [clone](https://github.com/stden/testlib) on github.
 
 ## Samples
 

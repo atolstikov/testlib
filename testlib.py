@@ -104,6 +104,17 @@ def englishEnding(x):
     return "th"
 
 
+def doubleCompare(expected, result, max_double_error):
+    """
+    Compares double values for relative or absolute error.
+    :param expected: expected correct value
+    :param result: test value
+    :param max_double_error: maximal error
+    :return: Is |expected - result| <= max_double_error * max(1, |expected|)
+    """
+    return abs(expected - result) <= max_double_error * max(1, abs(expected)) + 1E-15
+
+
 class InStream:
 
     def __init__(self):
