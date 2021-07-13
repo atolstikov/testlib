@@ -19,6 +19,7 @@ class Outcome:
     WA = 1
     PE = 2
     FAIL = 3
+    POINTS = 5
 
 
 outcomes = [
@@ -62,6 +63,8 @@ def halt(exit_code):
 
 
 def resultExitCode(result):
+    if result == Outcome.POINTS:
+        return Outcome.OK
     return result
 
 
@@ -289,6 +292,9 @@ class InStream:
         elif result == Outcome.PE:
             error_name = "wrong output format "
             self.quitscr(0, error_name)
+        elif result == Outcome.POINTS:
+            error_name = "points "
+            self.quitscr(0, error_name)
         elif result == Outcome.FAIL:
             error_name = "FAIL "
             self.quitscr(0, error_name)
@@ -389,7 +395,7 @@ def quitf(result, msg):
 
 def quitp(points, msg):
     quit_message = '{:.2f} {:s}'.format(points, msg)
-    quitf(Outcome.OK, quit_message)
+    quitf(Outcome.POINTS, quit_message)
 
 
 inf = InStream()
