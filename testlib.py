@@ -229,7 +229,7 @@ class InStream:
         if length > 1 and buffer[0] == '-':
             minus = True
         if length > 20:
-            self.quitf(Outcome.PE, "Expected integer, but \"{}}\" found".format(testlib_part(buffer)))
+            self.quitf(Outcome.PE, "Expected integer, but \"{}\" found".format(testlib_part(buffer)))
         retval = 0
         zeroes = 0
         processing_zeroes = True
