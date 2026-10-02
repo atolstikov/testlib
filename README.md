@@ -14,12 +14,17 @@ Pascal version of testlib is not included, but can be found at
 [http://acm.math.spbu.ru/soft/testlib](http://acm.math.spbu.ru/soft/testlib)
 or [clone](https://github.com/stden/testlib) on github.
 
+This project contains a C++ implementation of testlib. It is already being used in many programming contests in Russia, such as the Russian National Olympiad in Informatics and different stages of ICPC. Join!
+
+The library's C++ code is tested for compatibility with standard C++11 and higher on different versions of `g++`, `clang++`, and Microsoft Visual C++.
+
+This code has been used many times in Codeforces contests.
+
 ## Samples
 
 ### Checker (C++ and Python)
 
-This is sample checker which expects in the output and in the answer the same integer. 
-It ignores all white-spaces. See more examples in the package.
+This sample checker expects the same integer in the output and the answer. It ignores all white-spaces. See more examples in the package.
 
 ```c++
 #include "testlib.h"
@@ -54,9 +59,9 @@ if __name__ == '__main__':
 
 ### Interactor (C++ only)
 
-This sample interactor reads pairs of numbers from input file, sends it to the other program, reads
-result and writes it to output file (to be verified later). Another option could be terminating
-interactor with `quitf(_wa, <comment>)`.
+This sample interactor reads pairs of numbers from the input file, sends them to another program, reads
+the result, and writes it to an output file (to be verified later). Another option could be to terminate
+the interactor with `quitf(_wa, <comment>)`.
 
 ```c++
 #include "testlib.h"
@@ -89,8 +94,7 @@ int main(int argc, char* argv[]) {
 
 ### Validator (C++ only)
 
-This code reads input from the standard input and checks that it contains the only integer between 1 and 100, inclusive. Also validates that file ends with EOLN and EOF. On Windows it expects #13#10 as EOLN and it expects #10 as EOLN on other platforms. It doesn't ignore white-spaces, so it works very strict. It will return non-zero code in case of illegal input and writes message into the standard output. See more examples in the package.
-
+This code reads input from the standard input and checks that it contains only one integer between 1 and 100, inclusive. It also validates that the file ends with EOLN and EOF. On Windows, it expects #13#10 as EOLN, and it expects #10 as EOLN on other platforms. It does not ignore white-spaces, so it works very strictly. It will return a non-zero code in the case of illegal input and write a message to the standard output. See more examples in the package.
 
 ```c++
 #include "testlib.h"
@@ -105,27 +109,22 @@ int main(int argc, char* argv[]) {
 
 ### Generator (C++ only)
 
-This generator outputs into the standard output random token, containing Latin letters or digits. The length of the token will be between 1 and 1000, inclusive. It will use uniformly distributed random. To generate different values, call it with different command line parameters. It is typical behaviour of testlib generator to setup randseed by command line. See more examples in the package.
+This generator outputs a random token to the standard output, containing Latin letters or digits. The length of the token will be between 1 and 1000, inclusive. It will use a uniformly distributed random generator. To generate different values, call it with different command-line parameters. It is typical behavior for a testlib generator to set up randseed by command line. See more examples in the package.
 
 ```c++
 #include "testlib.h"
-#include <iostream>
-
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
-    cout << rnd.next(1, 10) << endl; /* Random number in the range [1,10]. */
-    cout << rnd.next("[a-zA-Z0-9]{1,1000}") << endl;  /* Random word of length [1,1000]. */
+    println(rnd.next(1, 10)); /* Random number in the range [1,10]. */
+    println(rnd.next("[a-zA-Z0-9]{1,1000}")); /* Random word of length [1,1000]. */
 }
 ```
 
-This generator outputs random permutation, the size equals to the first command line argument.
+This generator outputs a random permutation; the size is equal to the first command-line argument.
 
 ```c++
 #include "testlib.h"
-
-using namespace std;
 
 int main(int argc, char* argv[]) {
     registerGen(argc, argv, 1);
