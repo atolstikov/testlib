@@ -3,6 +3,9 @@
 Tested for Yandex.Contest only. Generators and interactors are not supported.
 ``readInt`` is a signed 32-bit integer and ``readLong`` is a signed 64-bit
 integer, as in the C++ library. ``registerValidation`` reads stdin strictly.
+A validator read error includes the line number. ``ensuref`` reports a
+failed condition, and ``validator.testset`` and ``validator.group`` come
+from the command line.
 
 A checker calls ``registerTestlibCmd()``, reads ``inf``, ``ouf``, and
 ``ans``, and finishes with ``quitf()`` or ``quitp()``. Leaving ``main``
@@ -33,7 +36,7 @@ import math
 import os
 import sys
 
-version = "0.2.0 (Nov 1 2026)"
+version = "0.2.1 (Nov 1 2026)"
 
 # Signed 32-bit range, same as C++ readInt / readInteger.
 INT32_MIN = -2147483648
@@ -504,8 +507,11 @@ class FileReader:
         self.unread = []
         self.iseof = False
         self.name = name
+        self.line = 1
 
     def unreadChar(self, c):
+        if c == LF:
+            self.line -= 1
         if c != EOFC:
             self.iseof = False
         self.unread.append(c)
@@ -523,11 +529,14 @@ class FileReader:
 
     def skipChar(self):
         if self.unread:
-            self.unread.pop()
+            if self.unread.pop() == LF:
+                self.line += 1
             return
         if self.iseof:
             return
-        self.reader.read(1)
+        got = self.reader.read(1)
+        if got and got[0] == LF:
+            self.line += 1
 
     def nextChar(self):
         ret = self.curChar()
@@ -558,6 +567,7 @@ class InStream:
         self.name = ""
         self.opened = False
         self.strict = False
+        self.lastLine = -1
 
     def init(self, filename, mode):
         """Open ``filename`` in binary mode and remember ``mode``."""
@@ -638,6 +648,8 @@ class InStream:
 
     def readChar(self, c=None):
         """Read one character. With ``c`` set, that exact character is required."""
+        if c is not None and self.reader is not None:
+            self.lastLine = self.reader.line
         found = self.nextChar()
         if found is None:
             self.quitf(Outcome.PE, "Unexpected end of file - character expected")
@@ -752,6 +764,7 @@ class InStream:
         if not self.strict:
             while isBlanks(reader.curChar()):
                 reader.skipChar()
+        self.lastLine = reader.line
         cur = reader.nextChar()
         if cur == EOFC:
             self.quitf(Outcome.PE, "Unexpected end of file - token expected")
@@ -1151,6 +1164,8 @@ class InStream:
 
     def readEoln(self):
         """Require a line break. A missing break is a presentation error."""
+        if self.reader is not None:
+            self.lastLine = self.reader.line
         if not self.eoln():
             self.quitf(Outcome.PE, "Expected EOLN")
 
@@ -1159,6 +1174,8 @@ class InStream:
 
         On ``inf`` this records that a validator finished its input.
         """
+        if self.reader is not None:
+            self.lastLine = self.reader.line
         if not self.eof():
             self.quitf(Outcome.PE, "Expected EOF")
         if self is inf:
@@ -1170,7 +1187,8 @@ class InStream:
         A verdict other than FAIL raised while reading the input or the
         answer is rewritten to FAIL: those files are the jury's, so a
         malformed token there is a checker or test error, not a
-        participant's presentation error.
+        participant's presentation error. A validator read error also
+        names the line.
 
         ``OK`` and ``POINTS`` require that the output has no further
         tokens. The message is truncated to ``MAX_MESSAGE_LENGTH``.
@@ -1200,7 +1218,11 @@ class InStream:
                 msg = warn + msg[:keep]
 
         if self.mode != FileMode.OUTPUT and result != Outcome.FAIL:
-            self.quitf(Outcome.FAIL, "{} ({})".format(msg, self.name))
+            if testlib_mode == "validator" and self.mode == FileMode.INPUT and self.lastLine != -1:
+                where = "{}, line {}".format(self.name, self.lastLine)
+            else:
+                where = self.name
+            self.quitf(Outcome.FAIL, "{} ({})".format(msg, where))
 
         if result == Outcome.POINTS and _quitp_points is None:
             quitf(Outcome.FAIL, "Expected points, but infinity found")
@@ -1297,6 +1319,22 @@ def quitf(result, msg):
     ouf.quitf(result, msg)
 
 
+def ensure(cond, what):
+    """Fail when ``cond`` is false.
+
+    The report is ``Condition failed: "<what>"``. ``what`` is the text
+    of the condition. This function does not return in that case.
+    """
+    if not cond:
+        quitf(Outcome.FAIL, 'Condition failed: "{}"'.format(what))
+
+
+def ensuref(cond, msg):
+    """Fail with ``msg`` when ``cond`` is false. Does not return in that case."""
+    if not cond:
+        quitf(Outcome.FAIL, msg)
+
+
 def quitp(points, msg):
     """Finish with a partial score. Does not return.
 
@@ -1390,17 +1428,70 @@ _VALIDATOR_ARGUMENTS = (
 _MAX_TEST_CASE = 1073741823
 
 
+class Validator:
+    """Testset and group selected on the validator command line.
+
+    ``testset`` is ``"tests"`` when ``registerValidation`` receives
+    ``argv`` and ``--testset`` is absent. Both accessors fail when
+    validation was started without ``argv``.
+    """
+
+    def __init__(self):
+        self._initialized = False
+        self._testset = "tests"
+        self._group = ""
+
+    def reset(self):
+        """Forget the command line and the initialization flag."""
+        self._initialized = False
+        self._testset = "tests"
+        self._group = ""
+
+    def initialize(self):
+        """Allow ``testset`` and ``group`` to be read."""
+        self._initialized = True
+
+    def testset(self):
+        """Return the active testset name."""
+        if not self._initialized:
+            quitf(
+                Outcome.FAIL,
+                "Validator should be initialized with registerValidation(argc, argv) "
+                "instead of registerValidation() to support validator.testset()",
+            )
+        return self._testset
+
+    def group(self):
+        """Return the active group name. It is empty when ``--group`` is absent."""
+        if not self._initialized:
+            quitf(
+                Outcome.FAIL,
+                "Validator should be initialized with registerValidation(argc, argv) "
+                "instead of registerValidation() to support validator.group()",
+            )
+        return self._group
+
+
+validator = Validator()
+
+
 def _register_validation_flags(argv):
     index = 1
     while index < len(argv):
         flag = argv[index]
         if flag == "--testset":
             if index + 1 < len(argv) and argv[index + 1] != "":
+                validator._testset = argv[index + 1]
+                index += 2
+                continue
+            quitf(Outcome.FAIL, _VALIDATOR_ARGUMENTS)
+        if flag == "--group":
+            if index + 1 < len(argv):
+                validator._group = argv[index + 1]
                 index += 2
                 continue
             quitf(Outcome.FAIL, _VALIDATOR_ARGUMENTS)
         if flag in (
-            "--group",
             "--testOverviewLogFileName",
             "--testMarkupFileName",
             "--testCaseFileName",
@@ -1430,17 +1521,20 @@ def registerValidation(argv=None):
 
     A validator must finish with ``inf.readEof()`` and does not call
     ``quitf`` when the input is accepted. Pass ``argv`` to accept the
-    optional ``--testset`` and ``--group`` flags.
+    optional ``--testset`` and ``--group`` flags and to enable
+    ``validator.testset`` and ``validator.group``.
     """
     global testlib_mode, _quitp_points, _last_exception
     testlib_mode = "validator"
     _quitp_points = None
     _last_exception = None
+    validator.reset()
     _install_hooks()
     inf.init_stdin()
     inf.strict = True
     if argv is not None:
         _register_validation_flags(argv)
+        validator.initialize()
 
 
 def registerTestlibCmd():
