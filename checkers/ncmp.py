@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Compare ordered sequences of signed integers."""
+"""Compare ordered sequences of signed 64-bit integers."""
 
 from testlib import *
 

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Compare two signed integers."""
+"""Compare two signed 32-bit integers."""
 
 from testlib import *
 
