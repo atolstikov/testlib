@@ -1,13 +1,10 @@
 #!/usr/bin/python3
+"""Compare ordered sequences of signed integers."""
 
 from testlib import *
 
 
 if __name__ == '__main__':
-    """
-    compare ordered sequences of signed integer numbers
-    """
-
     registerTestlibCmd()
 
     n = 0

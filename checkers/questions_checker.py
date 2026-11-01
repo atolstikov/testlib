@@ -1,4 +1,9 @@
 #!/usr/bin/python3
+"""Compare survey answers line by line.
+
+Each non-empty line is a question id and its answers, for example
+``Q1 answer_1`` or ``Q2 answer_2_1 answer_2_2``.
+"""
 
 version = "0.1.0 (Jan 13 2022)"
 
@@ -49,13 +54,6 @@ def compare(expected, found):
 
 
 if __name__ == '__main__':
-    """
-    Survey answers checker 
-    Q1 answer_1
-    Q2 answer_2_1 answer_2_2 ...
-    etc.
-    """
-
     registerTestlibCmd()
 
     jury_answer = read(ans)

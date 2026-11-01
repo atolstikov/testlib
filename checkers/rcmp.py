@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+"""Compare two doubles, maximal absolute error EPS."""
 
 from testlib import *
 
@@ -6,9 +7,6 @@ EPS = 1.5E-6
 
 
 if __name__ == '__main__':
-    """
-    compare two doubles, maximal absolute error EPS
-    """
     registerTestlibCmd()
 
     ja = ans.readDouble()

@@ -1,12 +1,12 @@
 #!/usr/bin/python3
+"""Score 1/N points for each correctly checked or correctly unchecked option.
+
+N is the number of options in the input.
+"""
 
 from testlib import *
 
 if __name__ == '__main__':
-    """
-    Checker with points
-    Answer scored to 1.0/options points for each correct choice (correctly checked and unchecked).
-    """
     registerTestlibCmd()
 
     options = set()
@@ -20,6 +20,12 @@ if __name__ == '__main__':
     checked_by_user = set()
     while not ouf.seekEof():
         checked_by_user.add(ouf.readInt())
+
+    if not options:
+        quitf(Outcome.FAIL, "Input contains no options")
+    outside = correct - options
+    if outside:
+        quitf(Outcome.FAIL, "Answer contains numbers that are not in the input: {}".format(sorted(outside)))
 
     checked_correct = correct & checked_by_user
     unchecked_correct = (options - correct) & (options - checked_by_user)

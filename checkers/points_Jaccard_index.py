@@ -1,16 +1,14 @@
 #!/usr/bin/python3
+"""Score the answer by the Jaccard index of the chosen and correct options.
+
+The score is the size of the intersection divided by the size of the union.
+See https://en.wikipedia.org/wiki/Jaccard_index. For a single-choice question,
+an unchecked correct option yields zero.
+"""
 
 from testlib import *
 
 if __name__ == '__main__':
-    """
-    Checker with points
-    Answer scored to the size of the intersection divided by the size of the union of the sets of options, 
-    checked by used and correct choices. More info: https://en.wikipedia.org/wiki/Jaccard_index
-    
-    This checker can be used for single choice questions. If correct option is unchecked the result will be zero.
-    """
-
     registerTestlibCmd()
 
     correct = set()

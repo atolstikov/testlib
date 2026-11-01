@@ -71,7 +71,7 @@ class SubprocessThread(threading.Thread):
       chunk = stream.readline(1)
       if not chunk:
         return
-      chunk = chunk.decode("UTF-8")
+      chunk = chunk.decode("UTF-8", "replace")
       if new_line and self.stderr_prefix:
         chunk = self.stderr_prefix + chunk
         new_line = False

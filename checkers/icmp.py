@@ -1,12 +1,10 @@
 #!/usr/bin/python3
+"""Compare two signed integers."""
 
 from testlib import *
 
 
 if __name__ == '__main__':
-    """
-    compares two signed integers
-    """
     registerTestlibCmd()
     ja = ans.readInt()
     pa = ouf.readInt()

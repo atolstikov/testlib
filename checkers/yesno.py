@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+"""Check YES or NO, case insensitive."""
 
 from testlib import *
 
@@ -7,10 +8,6 @@ NO = "NO"
 
 
 if __name__ == '__main__':
-    """
-    YES or NO (case insensitive) checker 
-    """
-
     registerTestlibCmd()
 
     jury_answer = ans.readWord().upper()

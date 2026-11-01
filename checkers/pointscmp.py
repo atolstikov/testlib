@@ -1,13 +1,13 @@
 #!/usr/bin/python3
+"""Score the output by the absolute difference of two doubles.
+
+The score is ``|ja - pa|``.
+"""
 
 from testlib import *
 
 
 if __name__ == '__main__':
-    """
-    example of scored checker
-    user's output scored to |ja - pa| points
-    """
     registerTestlibCmd()
 
     ja = ans.readDouble()
