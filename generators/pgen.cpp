@@ -10,6 +10,7 @@
 
 #include "testlib.h"
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -17,7 +18,7 @@ int main(int argc, char* argv[])
 {
     registerGen(argc, argv, 1);
     
-    cout << rnd.next(argv[1]) << endl;
+    cout << rnd.next(std::string(argv[1])) << endl;
 
     return 0;
 }
