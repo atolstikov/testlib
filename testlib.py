@@ -49,6 +49,7 @@ UINT64_MAX = 18446744073709551615
 
 # Same default as C++ InStream::maxFileSize.
 MAX_FILE_SIZE = 128 * 1024 * 1024
+MAX_TOKEN_LENGTH = 32 * 1024 * 1024
 
 MAX_MESSAGE_LENGTH = 32000
 
@@ -195,17 +196,21 @@ def englishEnding(x):
 def doubleCompare(expected, result, max_double_error):
     """Compare floats by absolute or relative error.
 
-    Finite values compare as ``abs(expected - result) <= max_double_error *
-    max(1, abs(expected)) + 1e-15``. NaN matches only NaN. Infinities match
-    only an infinity of the same sign.
+    Match C++ testlib's absolute or relative tolerance. Values with an
+    absolute magnitude above 1e300 are treated as infinite by testlib.
     """
+    max_double_error += 1e-15
     if math.isnan(expected):
         return math.isnan(result)
-    if math.isinf(expected):
-        return math.isinf(result) and (expected > 0) == (result > 0)
-    if math.isnan(result) or math.isinf(result):
+    if abs(expected) > 1e300:
+        return abs(result) > 1e300 and (expected > 0) == (result > 0)
+    if math.isnan(result) or abs(result) > 1e300:
         return False
-    return abs(expected - result) <= max_double_error * max(1, abs(expected)) + 1e-15
+    if abs(result - expected) <= max_double_error:
+        return True
+    lower = min(expected * (1.0 - max_double_error), expected * (1.0 + max_double_error))
+    upper = max(expected * (1.0 - max_double_error), expected * (1.0 + max_double_error))
+    return lower <= result <= upper
 
 
 def _human_int(value):
@@ -556,10 +561,9 @@ class InStream:
     """Byte stream over one checker file, or over stdin for a validator.
 
     Checker mode skips leading whitespace. Strict mode, used by validators,
-    does not. A malformed token aborts and does not return. In checker mode
-    ``readLine`` consumes a line break and every line break immediately
-    after it, so stacked blank lines collapse. In strict mode one platform
-    line break is required and is not collapsed.
+    does not. A malformed token aborts and does not return. ``readLine``
+    consumes exactly one line break, preserving empty lines. In strict mode
+    one platform line break is required.
     """
 
     def __init__(self):
@@ -569,6 +573,7 @@ class InStream:
         self.opened = False
         self.strict = False
         self.lastLine = -1
+        self.maxTokenLength = MAX_TOKEN_LENGTH
 
     def init(self, filename, mode):
         """Open ``filename`` in binary mode and remember ``mode``."""
@@ -712,7 +717,7 @@ class InStream:
         if self.strict:
             line = self._read_line_strict()
         else:
-            line = self._read_line_collapsed()
+            line = self._read_line_checker()
         if ptrn is not None:
             self._check_pattern(line, ptrn, variableName, "Line")
         return line
@@ -735,18 +740,21 @@ class InStream:
             lambda: self.readString(ptrn, variablesName), False,
         )
 
-    def _read_line_collapsed(self):
+    def _read_line_checker(self):
         reader = self._reader()
-        cur = reader.nextChar()
-        if cur == EOFC:
-            self.quitf(Outcome.PE, "Unexpected end of file - token expected")
         chars = []
-        while not (isEoln(cur) or cur == EOFC):
-            chars.append(chr(cur))
-            cur = reader.nextChar()
-        while isEoln(cur):
-            cur = reader.nextChar()
-        reader.unreadChar(cur)
+        while True:
+            cur = reader.curChar()
+            if cur == LF or cur == EOFC:
+                break
+            if cur == CR:
+                reader.nextChar()
+                if reader.curChar() == LF:
+                    reader.unreadChar(CR)
+                    break
+                continue
+            chars.append(chr(reader.nextChar()))
+        self.eoln()
         return "".join(chars)
 
     def _read_line_strict(self):
@@ -792,6 +800,9 @@ class InStream:
         chars = []
         while not (isBlanks(cur) or cur == EOFC):
             chars.append(chr(cur))
+            if len(chars) > self.maxTokenLength:
+                self.quitf(Outcome.PE, "Length of token exceeds {}, token is '{}...'".format(
+                    self.maxTokenLength, testlib_part("".join(chars))))
             cur = reader.nextChar()
         reader.unreadChar(cur)
         if not chars:
@@ -982,8 +993,9 @@ class InStream:
     def stringToStrictDouble(self, buffer, minAfterPointDigitCount, maxAfterPointDigitCount):
         """Parse a double with no exponent and a fixed fractional length.
 
-        ``-0`` and ``-0.00`` are accepted. A leading ``+``, a leading zero
-        (``01``, ``00.1``), and a trailing dot are presentation errors.
+        ``-0`` and ``-0.00`` are rejected as redundant minus. A leading
+        ``+``, a leading zero (``01``, ``00.1``), and a trailing dot are
+        presentation errors.
         """
         if minAfterPointDigitCount < 0:
             self.quitf(
@@ -1039,7 +1051,7 @@ class InStream:
             self._expected("double", buffer)
         if math.isnan(result) or math.isinf(result):
             self._expected("double", buffer)
-        if buffer[0] == "-" and result >= 0 and math.copysign(1.0, result) > 0:
+        if buffer[0] == "-" and result >= 0:
             self.quitf(Outcome.PE, 'Redundant minus in "{}" found'.format(testlib_part(buffer)))
         return result
 
@@ -1081,7 +1093,7 @@ class InStream:
             self.quitf(Outcome.PE, "Unexpected end of file - int64 expected")
         value = self.stringToUnsignedLong(self.readWord())
         if _bounds_given(minv, maxv):
-            self._check_bounds(value, minv, maxv, variableName, "Integer")
+            self._check_bounds(value, minv, maxv, variableName, "Unsigned integer")
         return value
 
     def readInts(self, size, minv=None, maxv=None, variablesName="", indexBase=1):

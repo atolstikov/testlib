@@ -7,6 +7,8 @@ import sys
 import tempfile
 import unittest
 
+from testlib import doubleCompare
+
 
 ROOT = Path(__file__).resolve().parents[1]
 EOL = b"\r\n" if os.name == "nt" else b"\n"
@@ -69,6 +71,7 @@ class PythonTestlibTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 3)
         self.assertIn(b"values[5]", result.stderr)
+        self.assertIn(b"Unsigned integer element", result.stderr)
 
     def test_signed_integer_limits_and_bounds(self):
         body = (
@@ -132,6 +135,37 @@ class PythonTestlibTests(unittest.TestCase):
             b"0.5 1.0" + EOL,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_checker_preserves_empty_lines_and_reads_empty_at_eof(self):
+        body = (
+            'assert ouf.readLines(3) == ["first", "", "last"]\n'
+            'assert ouf.readLine() == ""\n'
+            'quitf(Outcome.OK, "ok")\n'
+        )
+        result, _ = run_checker(body, b"first\n\nlast\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_strict_double_rejects_negative_zero(self):
+        for token in (b"-0", b"-0.00"):
+            with self.subTest(token=token):
+                result = run_validator(
+                    'inf.readStrictDouble(-1, 1, 0, 2)\ninf.readEof()\n', token
+                )
+                self.assertEqual(result.returncode, 3)
+                self.assertIn(b"Redundant minus", result.stderr)
+
+    def test_token_length_limit(self):
+        result, _ = run_checker(
+            'ouf.maxTokenLength = 3\nouf.readWord()\nquitf(Outcome.OK, "ok")\n',
+            b"abcd",
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(b"Length of token exceeds 3", result.stderr)
+
+    def test_double_compare_large_values(self):
+        self.assertTrue(doubleCompare(1e301, 1e302, 0))
+        self.assertFalse(doubleCompare(1e301, -1e302, 0))
+        self.assertTrue(doubleCompare(1.0, 1.0 + 1e-15, 0))
 
 
 if __name__ == "__main__":
