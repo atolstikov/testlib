@@ -10,6 +10,13 @@ The project also contains Python implementation of the testlib. This
 version is used on some competitions on Yandex.Contest (
 [https://contest.yandex.com](https://contest.yandex.com) ).
 
+The Python version is a single-file library for checkers and validators,
+tested for Yandex.Contest. It supports verdicts and partial scores, patterns,
+strict validator input, signed and unsigned 64-bit integers, arrays of tokens
+and lines, and strict decimal reads. It does not support generators,
+interactors, or the complete C++ testlib API. See the `testlib.py` module
+docstring for the checker command line and report format.
+
 Pascal version of testlib is not included, but can be found at
 [http://acm.math.spbu.ru/soft/testlib](http://acm.math.spbu.ru/soft/testlib)
 or [clone](https://github.com/stden/testlib) on github.
@@ -92,9 +99,9 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-### Validator (C++ only)
+### Validator (C++ and Python)
 
-This code reads input from the standard input and checks that it contains only one integer between 1 and 100, inclusive. It also validates that the file ends with EOLN and EOF. On Windows, it expects #13#10 as EOLN, and it expects #10 as EOLN on other platforms. It does not ignore white-spaces, so it works very strictly. It will return a non-zero code in the case of illegal input and write a message to the standard output. See more examples in the package.
+This code reads input from standard input and checks that it contains only one integer between 1 and 100, inclusive. It also validates that the file ends with EOLN and EOF. On Windows, it expects #13#10 as EOLN, and it expects #10 as EOLN on other platforms. It does not ignore white-spaces, so it works very strictly. Invalid input produces a non-zero exit code and an error message. See more examples in the package.
 
 ```c++
 #include "testlib.h"
@@ -106,6 +113,28 @@ int main(int argc, char* argv[]) {
     inf.readEof();
 }
 ```
+
+```python
+#!/usr/bin/python3
+import sys
+from testlib import *
+
+
+if __name__ == "__main__":
+    registerValidation(sys.argv)
+    inf.readInt(1, 100, "n")
+    inf.readEoln()
+    inf.readEof()
+```
+
+The Python validator reads standard input strictly and must finish with
+`inf.readEof()`. See `validators/` for more examples, including arrays,
+patterns, and command-line `--testset`/`--group` flags. Put `testlib.py`
+beside the checker or validator script, or include the repository directory
+on `PYTHONPATH`.
+
+Python regression tests run on Linux and Windows in CI. Run them locally with
+`python -B -m unittest discover -s tests -p test_python_testlib.py -v`.
 
 ### Generator (C++ only)
 

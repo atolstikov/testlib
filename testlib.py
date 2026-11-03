@@ -36,7 +36,7 @@ import math
 import os
 import sys
 
-version = "0.2.1 (Nov 1 2026)"
+version = "0.3.0 (Nov 3 2026)"
 
 # Signed 32-bit range, same as C++ readInt / readInteger.
 INT32_MIN = -2147483648
@@ -45,6 +45,7 @@ INT32_MAX = 2147483647
 # Signed 64-bit range, same as C++ std::stoll / readLong.
 INT64_MIN = -9223372036854775808
 INT64_MAX = 9223372036854775807
+UINT64_MAX = 18446744073709551615
 
 # Same default as C++ InStream::maxFileSize.
 MAX_FILE_SIZE = 128 * 1024 * 1024
@@ -716,6 +717,24 @@ class InStream:
             self._check_pattern(line, ptrn, variableName, "Line")
         return line
 
+    def readString(self, ptrn=None, variableName=""):
+        """Alias of ``readLine``."""
+        return self.readLine(ptrn, variableName)
+
+    def readLines(self, size, ptrn=None, variablesName="", indexBase=1):
+        """Read ``size`` lines. In strict mode each line needs its own EOLN."""
+        return self._read_many(
+            "readLines", size, indexBase,
+            lambda: self.readLine(ptrn, variablesName), False,
+        )
+
+    def readStrings(self, size, ptrn=None, variablesName="", indexBase=1):
+        """Alias of ``readLines``."""
+        return self._read_many(
+            "readStrings", size, indexBase,
+            lambda: self.readString(ptrn, variablesName), False,
+        )
+
     def _read_line_collapsed(self):
         reader = self._reader()
         cur = reader.nextChar()
@@ -782,6 +801,20 @@ class InStream:
     def readToken(self, ptrn=None, variableName=""):
         """Alias of ``readWord``."""
         return self.readWord(ptrn, variableName)
+
+    def readWords(self, size, ptrn=None, variablesName="", indexBase=1):
+        """Read ``size`` space-separated tokens, optionally matching ``ptrn``."""
+        return self._read_many(
+            "readWords", size, indexBase,
+            lambda: self.readWord(ptrn, variablesName), True,
+        )
+
+    def readTokens(self, size, ptrn=None, variablesName="", indexBase=1):
+        """Alias of ``readWords``."""
+        return self._read_many(
+            "readTokens", size, indexBase,
+            lambda: self.readToken(ptrn, variablesName), True,
+        )
 
     def readSpace(self):
         """Read one space character."""
@@ -889,6 +922,19 @@ class InStream:
         value = -retval if minus else retval
         if value < INT64_MIN or value > INT64_MAX:
             self._expected("integer", buffer)
+        return value
+
+    def stringToUnsignedLong(self, buffer):
+        """Parse a canonical unsigned 64-bit decimal integer."""
+        if (
+            not buffer or len(buffer) > 20
+            or (len(buffer) > 1 and buffer[0] == "0")
+            or any(ch < "0" or ch > "9" for ch in buffer)
+        ):
+            self._expected("unsigned integer", buffer)
+        value = int(buffer)
+        if value > UINT64_MAX:
+            self._expected("unsigned integer", buffer)
         return value
 
     def stringToFloat(self, buffer):
@@ -1029,6 +1075,15 @@ class InStream:
             self._check_bounds(value, minv, maxv, variableName, "Integer")
         return value
 
+    def readUnsignedLong(self, minv=None, maxv=None, variableName=""):
+        """Read an unsigned 64-bit integer, optionally within ``[minv, maxv]``."""
+        if not self.strict and self.seekEof():
+            self.quitf(Outcome.PE, "Unexpected end of file - int64 expected")
+        value = self.stringToUnsignedLong(self.readWord())
+        if _bounds_given(minv, maxv):
+            self._check_bounds(value, minv, maxv, variableName, "Integer")
+        return value
+
     def readInts(self, size, minv=None, maxv=None, variablesName="", indexBase=1):
         """Read ``size`` 32-bit integers.
 
@@ -1049,6 +1104,13 @@ class InStream:
         def read_one():
             return self.readLong(minv, maxv, variablesName)
         return self._read_many("readLongs", size, indexBase, read_one, True)
+
+    def readUnsignedLongs(self, size, minv=None, maxv=None, variablesName="", indexBase=1):
+        """Read ``size`` unsigned 64-bit integers. See ``readLongs``."""
+        return self._read_many(
+            "readUnsignedLongs", size, indexBase,
+            lambda: self.readUnsignedLong(minv, maxv, variablesName), True,
+        )
 
     def readFloat(self):
         """Read a floating-point token. See ``stringToFloat``."""
@@ -1113,6 +1175,27 @@ class InStream:
                 minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variablesName
             )
         return self._read_many("readStrictDoubles", size, indexBase, read_one, True)
+
+    def readStrictReal(
+        self, minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variableName=""
+    ):
+        """Alias of ``readStrictDouble``."""
+        return self.readStrictDouble(
+            minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount, variableName
+        )
+
+    def readStrictReals(
+        self, size, minv, maxv, minAfterPointDigitCount,
+        maxAfterPointDigitCount, variablesName="", indexBase=1,
+    ):
+        """Alias of ``readStrictDoubles``."""
+        return self._read_many(
+            "readStrictReals", size, indexBase,
+            lambda: self.readStrictReal(
+                minv, maxv, minAfterPointDigitCount, maxAfterPointDigitCount,
+                variablesName,
+            ), True,
+        )
 
     def eof(self):
         """True at end of file, or when the stream was never opened."""

@@ -19,6 +19,22 @@ env:
   TEST_REF_FORBID_GEN_REFS: true
 
 jobs:
+  tests-python:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+        python-version: ['3.11', '3.13']
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run Python tests
+        run: python -B -m unittest discover -s tests -p test_python_testlib.py -v
+
 #  tests-ubuntu2004-gpp:
 #    strategy:
 #      matrix:
