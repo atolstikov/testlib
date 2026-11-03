@@ -78,7 +78,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 11 20
 
   tests-ubuntu2204-clang:
     strategy:
@@ -93,7 +93,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 11 20
 
 #  tests-ubuntu2004-gpp-32:
 #    strategy:
@@ -144,7 +144,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install gcc-${{ matrix.version }}-multilib g++-${{ matrix.version }}-multilib
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32 11 17
 
   tests-ubuntu2204-clang-32:
     strategy:
@@ -161,7 +161,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install gcc-multilib g++-multilib
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 32 11 17
 
   tests-macos14-gpp:
     strategy:
@@ -176,7 +176,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 11 23
 
   tests-macos14-clang:
     strategy:
@@ -190,7 +190,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} 11 23
 
   tests-macos15-gpp:
     strategy:
@@ -205,7 +205,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 11 23
 
   tests-macos15-clang:
     strategy:
@@ -219,7 +219,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} 11 23
 
   tests-macos26-gpp:
     strategy:
@@ -234,7 +234,10 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }}
+          bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 11 23
+          if [[ "${{ matrix.version }}" == "15" ]]; then
+            bash ./run.sh ${{ matrix.compiler }} v${{ matrix.version }} 14 17 20 26 test-000_compile-all-cpp
+          fi
 
   tests-macos26-clang:
     strategy:
@@ -248,7 +251,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} 11 23
 
   tests-windows-2025:
     strategy:
@@ -262,7 +265,7 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} 14 23
 
   tests-windows-2022:
     strategy:
@@ -276,4 +279,4 @@ jobs:
       - name: Run tests
         run: |
           cd tests
-          bash ./run.sh ${{ matrix.compiler }}
+          bash ./run.sh ${{ matrix.compiler }} 14 23
