@@ -134,7 +134,34 @@ beside the checker or validator script, or include the repository directory
 on `PYTHONPATH`.
 
 Python regression tests run on Linux and Windows in CI. Run them locally with
-`python -B -m unittest discover -s tests -p test_python_testlib.py -v`.
+`python -B -m unittest discover -s tests -p "test_*.py" -v`.
+
+### Questionnaire checker (Python)
+
+`checkers/questions_checker.py` reads one answer per non-empty line:
+`Q1 value`, `Q2 value1 value2`, and so on. Keys are case-insensitive and
+must be `Q1`, `Q2`, etc.; duplicate keys are a presentation error. The
+default comparison keeps token order, ignores text case, and compares finite
+numbers with an absolute tolerance of `0.0015`.
+
+Edit `QUESTION_RULES` near the top of the checker to configure individual
+questions, for example:
+
+```python
+QUESTION_RULES = {
+    "Q1": {"kind": "number", "abs_tol": 0.01, "rel_tol": 0, "points": 2},
+    "Q2": {"kind": "unordered", "points": 3, "required": False},
+    "Q3": {"kind": "text", "case_sensitive": True, "points": 1},
+}
+```
+
+`kind` can be `auto`, `number` (one finite number), `text`, or
+`unordered` (a multiset of text tokens). Adding `points` enables partial
+scoring: missing or wrong optional questions earn zero, including when the
+total score is zero. Without scoring, questions are required by default.
+`required` can override either default. The older `POINTS` mapping still
+works; per-question `points` takes precedence. Feedback names incorrect
+questions without revealing jury answers.
 
 ### Generator (C++ only)
 
