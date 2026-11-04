@@ -100,6 +100,14 @@ class QuestionsCheckerTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
 
+    def test_strict_numeric_tolerance_boundary(self):
+        answer = b"Q1 1.0\nQ2 1:3\n"
+        output = b"Q1 1.5\nQ2 1:3\n"
+        rules = {"Q1": {"kind": "number", "abs_tol": 0.5, "inclusive": False}}
+        self.assertEqual(run_questions(answer, output, rules=rules).returncode, 1)
+        rules["Q1"]["inclusive"] = True
+        self.assertEqual(run_questions(answer, output, rules=rules).returncode, 0)
+
     def test_feedback_does_not_disclose_jury_values(self):
         result = run_questions(b"Q1 secret-answer\n", b"Q1 wrong\n")
         self.assertEqual(result.returncode, 1)

@@ -5,13 +5,14 @@ Configure QUESTION_RULES per question. Each rule accepts:
 
     kind: "auto" (default), "number", "text", or "unordered"
     abs_tol, rel_tol: non-negative numeric tolerances (for numbers)
+    inclusive: whether the numeric tolerance boundary is accepted
     case_sensitive: whether text comparisons respect case
     points: non-negative points for a correct answer
     required: whether omitting the question is WA
 
 "auto" compares tokens in order, interpreting finite numeric pairs as
-numbers. "unordered" compares text tokens as a multiset. POINTS remains
-available for older checkers; a rule's points override its POINTS entry.
+numbers. "unordered" compares text tokens as a multiset. POINTS is an
+alternative way to set weights; a rule's points override its POINTS entry.
 When scoring is enabled, omitted questions earn zero by default. Without
 scoring, questions are required by default.
 """
@@ -22,7 +23,7 @@ from collections import Counter
 
 from testlib import Outcome, ans, ouf, quitf, quitp, registerTestlibCmd
 
-version = "0.2.0 (Nov 4 2026)"
+version = "0.3.0 (Nov 4 2026)"
 REQUIRED_PRECISION = 0.0015
 CASE_SENSITIVE = False
 REPLACE_COMMA_TO_POINT = True
@@ -73,7 +74,7 @@ def _nonfinite_number(token, *, comma):
 
 def _rule(key, configured, weights, scoring):
     spec = dict(configured.get(key, {}))
-    unknown = set(spec) - {"kind", "abs_tol", "rel_tol", "case_sensitive", "points", "required"}
+    unknown = set(spec) - {"kind", "abs_tol", "rel_tol", "inclusive", "case_sensitive", "points", "required"}
     if unknown:
         quitf(Outcome.FAIL, "Unknown rule fields for {}: {}".format(key, ", ".join(sorted(unknown))))
     kind = spec.get("kind", "auto")
@@ -88,6 +89,10 @@ def _rule(key, configured, weights, scoring):
     if not isinstance(case_sensitive, bool):
         quitf(Outcome.FAIL, f"Invalid case_sensitive for {key}")
     spec["case_sensitive"] = case_sensitive
+    inclusive = spec.get("inclusive", True)
+    if not isinstance(inclusive, bool):
+        quitf(Outcome.FAIL, f"Invalid inclusive for {key}")
+    spec["inclusive"] = inclusive
     spec["kind"] = kind
     required = spec.get("required", not scoring)
     if not isinstance(required, bool):
@@ -149,6 +154,12 @@ def _number(token, stream, key):
     return value
 
 
+def _numbers_match(a, b, rule):
+    limit = max(rule["rel_tol"] * max(abs(a), abs(b)), rule["abs_tol"])
+    difference = abs(a - b)
+    return difference <= limit if rule["inclusive"] else difference < limit or a == b
+
+
 def _validate_jury(tokens, rule, key):
     if rule["kind"] == "number":
         if len(tokens) != 1:
@@ -166,7 +177,7 @@ def _matches(expected, found, rule, key):
         if len(found) != 1:
             ouf.quitf(Outcome.PE, f"Expected one number for {key}")
         a, b = _number(expected[0], ans, key), _number(found[0], ouf, key)
-        return math.isclose(a, b, rel_tol=rule["rel_tol"], abs_tol=rule["abs_tol"])
+        return _numbers_match(a, b, rule)
     if kind == "text":
         return _text(" ".join(expected), rule) == _text(" ".join(found), rule)
     if kind == "unordered":
@@ -182,7 +193,7 @@ def _matches(expected, found, rule, key):
         x = _finite_number(a, comma=REPLACE_COMMA_TO_POINT)
         y = _finite_number(b, comma=REPLACE_COMMA_TO_POINT)
         if x is not None and y is not None:
-            if not math.isclose(x, y, rel_tol=rule["rel_tol"], abs_tol=rule["abs_tol"]):
+            if not _numbers_match(x, y, rule):
                 return False
         elif _text(a, rule) != _text(b, rule):
             return False

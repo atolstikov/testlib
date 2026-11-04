@@ -149,7 +149,7 @@ questions, for example:
 
 ```python
 QUESTION_RULES = {
-    "Q1": {"kind": "number", "abs_tol": 0.01, "rel_tol": 0, "points": 2},
+    "Q1": {"kind": "number", "abs_tol": 0.01, "inclusive": False, "points": 2},
     "Q2": {"kind": "unordered", "points": 3, "required": False},
     "Q3": {"kind": "text", "case_sensitive": True, "points": 1},
 }
@@ -159,9 +159,42 @@ QUESTION_RULES = {
 `unordered` (a multiset of text tokens). Adding `points` enables partial
 scoring: missing or wrong optional questions earn zero, including when the
 total score is zero. Without scoring, questions are required by default.
-`required` can override either default. The older `POINTS` mapping still
+`required` can override either default. The `POINTS` mapping also
 works; per-question `points` takes precedence. Feedback names incorrect
-questions without revealing jury answers.
+questions without revealing jury answers. `inclusive=False` uses a strict
+numeric tolerance boundary.
+
+### CSV checker (Python)
+
+`checkers/csv_checker.py` compares a submitted CSV file (`ouf`) against the
+jury CSV (`ans`). It reads UTF-8 (including a BOM), quoted commas, escaped
+quotes, and quoted newlines with Python's `csv` parser. Every row must have
+the declared number of columns; empty or repeated column names are rejected.
+By default, header and row order must match, and all columns are compared.
+
+Configure the constants near the top of a copy of the checker:
+
+```python
+KEY_COLUMN = "record_id"     # None compares rows by position
+ALLOW_COLUMN_REORDER = True  # False requires the jury column order
+COLUMN_RULES = {
+    "measurement": {"kind": "number", "abs_tol": 0.01, "inclusive": False},
+    "category": {"kind": "text"},
+    "metadata": {"kind": "ignore"},
+}
+POINTS = 10                 # None returns OK/WA without a partial score
+SCORE_MODE = "all_or_nothing"  # or "fraction_correct"
+```
+
+Kinds are `auto` (the default: compare finite decimal pairs numerically,
+otherwise compare text), `number`, `text`, and `ignore`. Numeric rules also
+accept `rel_tol`; text rules accept `case_sensitive` (true by default).
+`inclusive` is true by default. With `KEY_COLUMN`, keys must be nonempty and
+unique in both files; the checker matches rows by key. In `fraction_correct`
+mode, the score is `POINTS * correct_rows / max(jury_rows, submitted_rows)`,
+so extra or missing rows reduce it. Feedback reports counts without exposing
+jury cell values. To compare only selected columns, mark the other columns
+`ignore`; the full header is still validated.
 
 ### Generator (C++ only)
 
